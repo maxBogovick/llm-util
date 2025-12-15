@@ -386,7 +386,6 @@ mod tests {
     use std::path::PathBuf;
 
     fn create_test_config(max_tokens: usize) -> Config {
-        use assert_fs::prelude::*;
         let temp = assert_fs::TempDir::new().unwrap();
 
         Config::builder()

@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
 use crate::filter::{FileFilterConfig, FilterConfig};
 use crate::token::TokenizerKind;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 const DEFAULT_MAX_TOKENS: usize = 100_000;
 const DEFAULT_OVERLAP_TOKENS: usize = 1_000;
@@ -41,7 +41,7 @@ impl OutputFormat {
     }
 }
 
-/// Configuration for the repo-to-prompt pipeline.
+/// Configuration for the llm-utl pipeline.
 ///
 /// Use [`Config::builder()`] to construct a new configuration.
 #[derive(Debug, Clone)]
@@ -76,7 +76,7 @@ pub struct Config {
 
     /// Code filtering configuration
     pub filter_config: FilterConfig,
-    
+
     /// Code filtering configuration
     pub file_filter_config: FileFilterConfig,
 
@@ -353,7 +353,6 @@ impl ConfigBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use assert_fs::prelude::*;
 
     #[test]
     fn test_default_config() {

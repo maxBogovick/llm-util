@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-12-15
 
 ### Added
-- Initial release of llm-utl (repo-to-prompt)
+- Initial release of llm-utl (llm-utl)
 - Parallel file scanning with gitignore support
 - Smart chunking algorithm with configurable token limits
 - Multiple output formats: Markdown, XML, JSON

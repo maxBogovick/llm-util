@@ -4,7 +4,7 @@ use thiserror::Error;
 /// Result type alias using the library's Error type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Comprehensive error types for the repo-to-prompt library.
+/// Comprehensive error types for the llm-utl library.
 #[derive(Error, Debug, Clone)]
 #[non_exhaustive]
 pub enum Error {

@@ -1,9 +1,9 @@
-use std::collections::HashSet;
 use crate::error::{Error, Result};
-use std::fs::File;
-use std::io::Read;
-use std::path::{Path, PathBuf};
 use once_cell::sync::Lazy;
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::{BufReader, Read};
+use std::path::{Path, PathBuf};
 
 static TEXT_EXTENSIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     [
@@ -141,8 +141,6 @@ impl FileData {
 ///
 /// Returns an error if the file cannot be opened or read.
 pub fn is_likely_binary(path: &Path) -> Result<bool> {
-    use std::fs::File;
-    use std::io::{BufReader, Read};
 
     const BUFFER_SIZE: usize = 8192;
     const ASCII_THRESHOLD: f64 = 0.85;
@@ -194,6 +192,7 @@ mod tests {
     use super::*;
     use assert_fs::prelude::*;
     use std::io::Write;
+    use std::fs::File;
 
     #[test]
     fn test_file_data_text() {

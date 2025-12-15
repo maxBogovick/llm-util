@@ -3,8 +3,8 @@
 //! Provides functionality to strip tests, comments, and documentation
 //! from source code before generating prompts.
 
-use std::path::{Path, PathBuf};
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use std::path::Path;
 
 #[derive(Debug, Clone, Default)]
 pub struct FileFilterConfig {
@@ -822,7 +822,6 @@ impl<'a> LanguageFilter for CFilter<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     fn test_rust_filter_removes_tests() {

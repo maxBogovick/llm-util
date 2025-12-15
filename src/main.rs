@@ -1,6 +1,6 @@
 use anyhow::Context;
 use clap::Parser;
-use llm_utl::{Config, FilterConfig, OutputFormat, Pipeline, TokenizerKind, FileFilterConfig};
+use llm_utl::{Config, FileFilterConfig, FilterConfig, OutputFormat, Pipeline, TokenizerKind};
 use std::path::PathBuf;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 

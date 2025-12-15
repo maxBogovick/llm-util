@@ -1,4 +1,4 @@
-# llm-utl (repo-to-prompt)
+# llm-utl (llm-utl)
 
 [![Crates.io](https://img.shields.io/crates/v/llm-utl.svg)](https://crates.io/crates/llm-utl)
 [![Documentation](https://docs.rs/llm-utl/badge.svg)](https://docs.rs/llm-utl)
@@ -41,21 +41,21 @@ llm-utl = "0.1.0"
 Basic usage:
 ```bash
 # Convert current directory to prompts
-repo-to-prompt
+llm-utl
 
 # Specify input and output directories
-repo-to-prompt --dir ./src --out ./prompts
+llm-utl --dir ./src --out ./prompts
 
 # Configure token limits and format
-repo-to-prompt --max-tokens 50000 --format xml
+llm-utl --max-tokens 50000 --format xml
 
 # Dry run to preview what would be generated
-repo-to-prompt --dry-run
+llm-utl --dry-run
 ```
 
 All options:
 ```bash
-repo-to-prompt [OPTIONS]
+llm-utl [OPTIONS]
 
 Options:
   -d, --dir <DIR>              Root directory to scan [default: .]

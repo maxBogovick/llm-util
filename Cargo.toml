@@ -15,6 +15,7 @@ exclude = [
     "out/",
     ".idea/",
 ]
+rust-version = "1.85.0"
 
 [dependencies]
 # CLI
@@ -58,7 +59,7 @@ default = []
 async = ["tokio"]
 
 [[bin]]
-name = "repo-to-prompt"
+name = "llm-utl-lib"
 path = "src/main.rs"
 
 [profile.release]

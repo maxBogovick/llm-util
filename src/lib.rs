@@ -1,4 +1,4 @@
-//! # Repo-to-Prompt
+//! # llm-utl
 //!
 //! A high-performance library for converting code repositories into LLM prompts.
 //!
@@ -61,7 +61,7 @@ mod preset;
 pub use config::{Config, ConfigBuilder, OutputFormat};
 pub use error::{Error, Result};
 pub use file::FileData;
-pub use filter::{CodeFilter, FilterConfig, FileFilterConfig};
+pub use filter::{CodeFilter, FileFilterConfig, FilterConfig};
 pub use pipeline::{Pipeline, PipelineStats};
 pub use splitter::Chunk;
 pub use token::{TokenEstimator, TokenizerKind};

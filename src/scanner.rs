@@ -1,3 +1,4 @@
+use crate::filter::FileFilter;
 use crate::{
     config::Config,
     error::{Error, Result},
@@ -6,15 +7,14 @@ use crate::{
     token::TokenEstimator,
 };
 use ignore::{DirEntry, WalkBuilder, WalkState};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::{
     fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use tracing::{debug, trace, warn};
-use crate::filter::FileFilter;
 
 /// Statistics collected during scanning.
 #[derive(Debug, Default, Clone)]
@@ -335,7 +335,6 @@ impl Scanner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::token::SimpleTokenizer;
     use assert_fs::prelude::*;
 
     fn create_test_config(root: &Path) -> Config {
