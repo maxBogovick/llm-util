@@ -2,6 +2,19 @@
 name = "llm-utl"
 version = "0.1.0"
 edition = "2024"
+authors = ["Maxim Bogovic <bogovick@gmail.com>"]
+description = "Convert code repositories into LLM-friendly prompts with smart chunking and filtering"
+license = "MIT"
+repository = "https://github.com/maxBogovick/llm-util"
+homepage = "https://github.com/maxBogovick/llm-util"
+documentation = "https://github.com/maxBogovick/llm-util/blob/master/README.md"
+readme = "README.md"
+keywords = ["llm", "ai", "prompt", "code-analysis", "tokenizer"]
+categories = ["command-line-utilities", "development-tools", "text-processing"]
+exclude = [
+    "out/",
+    ".idea/",
+]
 
 [dependencies]
 # CLI
@@ -31,7 +44,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # Utilities
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-tempfile = "3.10"
 
 # Async runtime (для будущих улучшений)
 tokio = { version = "1.37", features = ["fs", "rt-multi-thread"], optional = true }
@@ -40,9 +52,6 @@ memchr = "2.7.6"
 
 [dev-dependencies]
 assert_fs = "1.1"
-predicates = "3.1"
-proptest = "1.4"
-criterion = "0.5"
 
 [features]
 default = []
