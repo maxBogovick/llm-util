@@ -1,6 +1,6 @@
 use crate::{
     config::Config,
-    error::{Error, Result},
+    error::Result,
     file::FileData,
     scanner::Scanner,
     splitter::Splitter,

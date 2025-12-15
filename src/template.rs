@@ -34,7 +34,7 @@ struct ContextMetadata {
 }
 
 /// Template engine for rendering chunks in different formats.
-pub struct TemplateEngine {
+pub(crate) struct TemplateEngine {
     tera: Tera,
     format: OutputFormat,
 }
@@ -45,7 +45,7 @@ impl TemplateEngine {
     /// # Errors
     ///
     /// Returns an error if template registration or filter setup fails.
-    pub fn new(config: &Config) -> Result<Self> {
+    pub(crate) fn new(config: &Config) -> Result<Self> {
         let mut tera = Tera::default();
 
         // Register built-in templates
@@ -226,7 +226,7 @@ impl TemplateEngine {
     /// # Errors
     ///
     /// Returns an error if template rendering fails.
-    pub fn render(&self, chunk: &Chunk, total_chunks: usize) -> Result<String> {
+    pub(crate) fn render(&self, chunk: &Chunk, total_chunks: usize) -> Result<String> {
         let template_name = self.format.template_name();
 
         let files: Vec<FileView> = chunk

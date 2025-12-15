@@ -140,7 +140,7 @@ impl FileData {
 /// # Errors
 ///
 /// Returns an error if the file cannot be opened or read.
-pub fn is_likely_binary(path: &Path) -> Result<bool> {
+pub(crate) fn is_likely_binary(path: &Path) -> Result<bool> {
 
     const BUFFER_SIZE: usize = 8192;
     const ASCII_THRESHOLD: f64 = 0.85;
@@ -171,7 +171,7 @@ pub fn is_likely_binary(path: &Path) -> Result<bool> {
 
 /// Checks if a file extension suggests a text file.
 #[must_use]
-pub fn has_text_extension(path: &Path) -> bool {
+pub(crate) fn has_text_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .map(|ext| TEXT_EXTENSIONS.contains(ext))
@@ -180,7 +180,7 @@ pub fn has_text_extension(path: &Path) -> bool {
 
 /// Checks if a file extension suggests a binary file.
 #[must_use]
-pub fn has_binary_extension(path: &Path) -> bool {
+pub(crate) fn has_binary_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .map(|ext| BINARY_EXTENSIONS.contains(ext))

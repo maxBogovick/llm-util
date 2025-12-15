@@ -38,7 +38,7 @@ impl FileFilterConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct FileFilter {
+pub(crate) struct FileFilter {
     exclude_files: GlobSet,
     include_files: Option<GlobSet>,
     exclude_directories: GlobSet,
@@ -46,7 +46,7 @@ pub struct FileFilter {
 
 impl FileFilter {
     /// Создает новый фильтр с заданной конфигурацией.
-    pub fn new(config: FileFilterConfig) -> Self {
+    pub(crate) fn new(config: FileFilterConfig) -> Self {
         let exclude_files = Self::build_globset(&config.exclude_files).unwrap();
         let exclude_directories = Self::build_globset(&config.exclude_directories).unwrap();
 
@@ -78,7 +78,7 @@ impl FileFilter {
         })
     }
 
-    pub fn should_process(&self, path: &Path) -> bool {
+    pub(crate) fn should_process(&self, path: &Path) -> bool {
         // Проверка include patterns (если указаны)
         if let Some(ref include) = self.include_files {
             if !include.is_match(path) {
@@ -233,7 +233,7 @@ trait LanguageFilter {
 
     /// Removes comments from a line while preserving strings.
     /// Removes comments from a line while preserving strings.
-    fn strip_line_comment(&self, line: &str, comment_start: &str) -> String {
+    fn strip_line_comment(&self, line: &str, _comment_start: &str) -> String {
         let mut in_string = false;
         let mut escape_next = false;
         let chars: Vec<char> = line.chars().collect();
@@ -499,7 +499,7 @@ impl<'a> LanguageFilter for PythonFilter<'a> {
         let mut result = Vec::new();
         let mut in_docstring = false;
         let mut in_test_function = false;
-        let mut indent_level = 0;
+        let _indent_level = 0;
         let mut test_indent = 0;
 
         for line in lines {
@@ -676,7 +676,7 @@ impl<'a> LanguageFilter for GoFilter<'a> {
         line.trim().starts_with("//")
     }
 
-    fn is_doc_comment(&self, line: &str) -> bool {
+    fn is_doc_comment(&self, _line: &str) -> bool {
         false // Go doesn't have special doc comments
     }
 
@@ -762,7 +762,7 @@ impl<'a> LanguageFilter for JavaFilter<'a> {
             if skip_next_method {
                 if trimmed.contains('{') {
                     // Found method start, now skip until closing brace
-                    let mut brace_count = trimmed.matches('{').count() as i32
+                    let brace_count = trimmed.matches('{').count() as i32
                         - trimmed.matches('}').count() as i32;
 
                     if brace_count == 0 {

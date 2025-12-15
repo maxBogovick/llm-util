@@ -18,7 +18,7 @@ use tracing::{debug, trace, warn};
 
 /// Statistics collected during scanning.
 #[derive(Debug, Default, Clone)]
-pub struct ScanStats {
+pub(crate) struct ScanStats {
     /// Total files found
     pub total_files: usize,
 
@@ -36,7 +36,7 @@ pub struct ScanStats {
 }
 
 /// Scans directories and collects file data.
-pub struct Scanner {
+pub(crate) struct Scanner {
     root_dir: PathBuf,
     include_binary: bool,
     tokenizer: Arc<dyn TokenEstimator>,
@@ -46,7 +46,7 @@ pub struct Scanner {
 
 impl Scanner {
     /// Creates a new scanner from configuration.
-    pub fn new(config: &Config) -> Self {
+    pub(crate) fn new(config: &Config) -> Self {
         Self {
             root_dir: config.root_dir.clone(),
             include_binary: config.include_binary_files,
@@ -63,7 +63,7 @@ impl Scanner {
     /// Returns an error if:
     /// - No files are found
     /// - Critical scanning errors occur
-    pub fn scan(&self) -> Result<Vec<FileData>> {
+    pub(crate) fn scan(&self) -> Result<Vec<FileData>> {
         let files = Arc::new(Mutex::new(Vec::new()));
         let errors = Arc::new(Mutex::new(Vec::new()));
         let stats = Arc::new(Mutex::new(ScanStats::default()));
@@ -227,7 +227,7 @@ impl Scanner {
     fn create_binary_file_data(
         path: &Path,
         relative_path: String,
-        stats: &mut ScanStats,
+        _stats: &mut ScanStats,
     ) -> Result<Option<FileData>> {
         let metadata = fs::metadata(path).map_err(|e| Error::io(path, e))?;
 

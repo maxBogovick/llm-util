@@ -54,7 +54,7 @@ impl Chunk {
 }
 
 /// Splits files into optimally-sized chunks based on token limits.
-pub struct Splitter {
+pub(crate) struct Splitter {
     max_chunk_tokens: usize,
     overlap_tokens: usize,
     prefer_line_boundaries: bool,
@@ -63,7 +63,7 @@ pub struct Splitter {
 
 impl Splitter {
     /// Creates a new splitter from configuration.
-    pub fn new(config: &Config) -> Self {
+    pub(crate) fn new(config: &Config) -> Self {
         Self {
             max_chunk_tokens: config.effective_chunk_size(),
             overlap_tokens: config.overlap_tokens,
@@ -83,7 +83,7 @@ impl Splitter {
     /// # Errors
     ///
     /// Returns an error if a binary file exceeds token limits.
-    pub fn split(&self, files: Vec<FileData>) -> Result<Vec<Chunk>> {
+    pub(crate) fn split(&self, files: Vec<FileData>) -> Result<Vec<Chunk>> {
         if files.is_empty() {
             return Ok(Vec::new());
         }
@@ -182,7 +182,7 @@ impl Splitter {
     fn split_large_file(&self, file: &FileData) -> Result<Vec<FileData>> {
         let content = match &file.content {
             FileContent::Text(text) => text,
-            FileContent::Binary { size } => {
+            FileContent::Binary { size: _ } => {
                 return Err(Error::FileTooLarge {
                     path: file.absolute_path.clone(),
                     size: file.token_count,
@@ -267,7 +267,7 @@ impl Splitter {
     }
 
     /// Оптимизированный расчет параметров разбиения
-    fn calculate_split_parameters(&self, lines: &[&str], total_tokens: usize) -> SplitParameters {
+    fn calculate_split_parameters(&self, lines: &[&str], _total_tokens: usize) -> SplitParameters {
         let total_lines = lines.len();
 
         // Используем адаптивный размер выборки

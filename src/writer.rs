@@ -11,11 +11,11 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, SystemTime},
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Summary of written output files.
 #[derive(Debug, Serialize)]
-pub struct WriteSummary {
+pub(crate) struct WriteSummary {
     /// Total number of chunks written
     pub total_chunks: usize,
 
@@ -43,7 +43,7 @@ pub struct WriteSummary {
 
 /// Summary of a single chunk.
 #[derive(Debug, Serialize)]
-pub struct ChunkSummary {
+pub(crate) struct ChunkSummary {
     /// Chunk index (1-based for user display)
     pub index: usize,
 
@@ -58,7 +58,7 @@ pub struct ChunkSummary {
 }
 
 /// Writes chunks to output files with atomic operations.
-pub struct Writer {
+pub(crate) struct Writer {
     output_dir: PathBuf,
     output_pattern: String,
     format: crate::config::OutputFormat,
@@ -72,7 +72,7 @@ impl Writer {
     /// # Errors
     ///
     /// Returns an error if template engine initialization fails.
-    pub fn new(config: &Config) -> Result<Self> {
+    pub(crate) fn new(config: &Config) -> Result<Self> {
         Ok(Self {
             output_dir: config.output_dir.clone(),
             output_pattern: config.output_pattern.clone(),
@@ -90,7 +90,7 @@ impl Writer {
     /// - Output directory cannot be created
     /// - Template rendering fails
     /// - File write operations fail
-    pub fn write_chunks(&self, chunks: &[Chunk]) -> Result<()> {
+    pub(crate) fn write_chunks(&self, chunks: &[Chunk]) -> Result<()> {
         // Create output directory
         fs::create_dir_all(&self.output_dir)
             .map_err(|e| Error::io(&self.output_dir, e))?;
@@ -205,7 +205,7 @@ impl Writer {
     /// # Errors
     ///
     /// Returns an error if the summary file cannot be written.
-    pub fn write_summary(&self, chunks: &[Chunk], duration: Duration) -> Result<()> {
+    pub(crate) fn write_summary(&self, chunks: &[Chunk], duration: Duration) -> Result<()> {
         let summary = WriteSummary {
             total_chunks: chunks.len(),
             total_files: chunks.iter().map(|c| c.files.len()).sum(),
@@ -246,7 +246,7 @@ impl Writer {
     /// Cleans up old backup files (optional utility method).
     ///
     /// Removes backup files older than the specified duration.
-    pub fn cleanup_old_backups(&self, max_age: Duration) -> Result<usize> {
+    pub(crate) fn cleanup_old_backups(&self, max_age: Duration) -> Result<usize> {
         let mut removed = 0;
         let now = SystemTime::now();
 

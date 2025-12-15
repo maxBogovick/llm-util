@@ -52,7 +52,7 @@ pub trait TokenEstimator: Send + Sync {
 /// Uses a heuristic of approximately 4 characters per token,
 /// which works reasonably well for source code.
 #[derive(Debug, Clone, Copy)]
-pub struct SimpleTokenizer;
+pub(crate) struct SimpleTokenizer;
 
 impl TokenEstimator for SimpleTokenizer {
     fn estimate(&self, text: &str) -> usize {
@@ -78,7 +78,7 @@ impl TokenEstimator for SimpleTokenizer {
 ///
 /// It provides better accuracy than [`SimpleTokenizer`] but is slightly slower.
 #[derive(Debug, Clone, Copy)]
-pub struct EnhancedTokenizer;
+pub(crate) struct EnhancedTokenizer;
 
 impl TokenEstimator for EnhancedTokenizer {
     fn estimate(&self, text: &str) -> usize {
@@ -122,7 +122,7 @@ fn count_special_chars(text: &str) -> usize {
 ///
 /// Useful for chunking operations.
 #[inline]
-pub fn estimate_slice(estimator: &dyn TokenEstimator, text: &str, start: usize, end: usize) -> usize {
+pub(crate) fn estimate_slice(estimator: &dyn TokenEstimator, text: &str, start: usize, end: usize) -> usize {
     if start >= text.len() {
         return 0;
     }

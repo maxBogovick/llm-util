@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 /// Preset для различных задач LLM
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LLMPreset {
+pub(crate) struct LLMPreset {
     pub id: String,
     pub name: String,
     pub description: String,
@@ -18,7 +18,7 @@ pub struct LLMPreset {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum CodeBlockStyle {
+pub(crate) enum CodeBlockStyle {
     Markdown,
     Xml,
     Inline,
@@ -26,7 +26,7 @@ pub enum CodeBlockStyle {
 
 impl LLMPreset {
     /// Создает коллекцию стандартных preset'ов
-    pub fn standard_presets() -> HashMap<String, Self> {
+    pub(crate) fn standard_presets() -> HashMap<String, Self> {
         let mut presets = HashMap::new();
 
         presets.insert("code-review".to_string(), Self::code_review());
