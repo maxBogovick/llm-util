@@ -1,0 +1,25 @@
+# 📦 Code Context - Part {{ ctx.chunk_index }}/{{ ctx.total_chunks }}
+
+> Generated: {{ ctx.metadata.generated_at }}
+> Files in this chunk: {{ ctx.chunk_files }}
+> Total tokens: ~{{ ctx.total_tokens }}
+
+---
+
+{% for file in ctx.files %}
+## 📄 `{{ file.relative_path }}`
+
+{% if file.is_binary -%}
+*[Binary file - {{ file.token_count }} bytes]*
+{% else -%}
+**Tokens:** ~{{ file.token_count }} | **Lines:** {{ file.lines | default(value=0) }}
+```{% set ext = file.relative_path | split(pat=".") | last %}{% if ext == "rs" %}rust{% elif ext == "py" %}python{% elif ext == "js" %}javascript{% elif ext == "ts" %}typescript{% elif ext == "toml" %}toml{% elif ext == "json" %}json{% elif ext == "yaml" or ext == "yml" %}yaml{% elif ext == "md" %}markdown{% elif ext == "sh" %}bash{% elif ext == "c" or ext == "h" %}c{% elif ext == "cpp" or ext == "hpp" %}cpp{% elif ext == "go" %}go{% elif ext == "java" %}java{% elif ext == "rb" %}ruby{% elif ext == "php" %}php{% elif ext == "html" %}html{% elif ext == "css" %}css{% elif ext == "xml" %}xml{% else %}{% endif %}
+{{ file.content }}
+```
+{% endif %}
+
+---
+
+{% endfor %}
+
+<!-- End of chunk {{ ctx.chunk_index }}/{{ ctx.total_chunks }} -->
