@@ -246,6 +246,7 @@ impl Writer {
     /// Cleans up old backup files (optional utility method).
     ///
     /// Removes backup files older than the specified duration.
+    #[allow(dead_code)]
     pub(crate) fn cleanup_old_backups(&self, max_age: Duration) -> Result<usize> {
         let mut removed = 0;
         let now = SystemTime::now();

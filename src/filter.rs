@@ -6,6 +6,9 @@
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use std::path::Path;
 
+/// Configuration for file filtering with glob patterns.
+///
+/// Allows selective file and directory inclusion/exclusion during repository scanning.
 #[derive(Debug, Clone, Default)]
 pub struct FileFilterConfig {
     exclude_files: Vec<String>,
@@ -220,7 +223,8 @@ impl CodeFilter {
 /// Trait for language-specific code filters.
 trait LanguageFilter {
     /// Returns the filter configuration.
-    #[warn(unused)] fn config(&self) -> &FilterConfig;
+    #[allow(dead_code)]
+    fn config(&self) -> &FilterConfig;
 
     /// Filters the content according to language rules.
     fn filter(&self, content: &str) -> String;
@@ -573,6 +577,7 @@ impl<'a> JavaScriptFilter<'a> {
         Self { config }
     }
 
+    #[allow(dead_code)]
     fn is_test_block(&self, line: &str) -> bool {
         let trimmed = line.trim();
         trimmed.starts_with("describe(")

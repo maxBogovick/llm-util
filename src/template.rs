@@ -1,7 +1,7 @@
 use crate::{
     config::{Config, OutputFormat},
     error::{Error, Result},
-    preset::{LLMPreset, PresetKind},
+    preset::LLMPreset,
     splitter::Chunk,
 };
 use serde::Serialize;

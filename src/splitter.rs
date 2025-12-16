@@ -57,6 +57,7 @@ impl Chunk {
 pub(crate) struct Splitter {
     max_chunk_tokens: usize,
     overlap_tokens: usize,
+    #[allow(dead_code)]
     prefer_line_boundaries: bool,
     tokenizer: Arc<dyn TokenEstimator>,
 }

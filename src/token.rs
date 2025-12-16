@@ -122,6 +122,7 @@ fn count_special_chars(text: &str) -> usize {
 ///
 /// Useful for chunking operations.
 #[inline]
+#[allow(dead_code)]
 pub(crate) fn estimate_slice(estimator: &dyn TokenEstimator, text: &str, start: usize, end: usize) -> usize {
     if start >= text.len() {
         return 0;

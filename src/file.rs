@@ -5,30 +5,15 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 
-#[warn(unused)]
-static TEXT_EXTENSIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-    [
-        "rs", "toml", "md", "txt", "json", "yaml", "yml",
-        "js", "ts", "jsx", "tsx", "py", "go", "java",
-        "c", "cpp", "h", "hpp", "cs", "rb", "php",
-        "html", "css", "scss", "sass", "xml", "svg",
-        "sh", "bash", "zsh", "fish", "vim", "lua",
-    ]
-        .into_iter()
-        .collect()
-});
-
 static BINARY_EXTENSIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     [
-        "exe", "dll", "so", "dylib", "a", "o", "obj",
-        "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp",
-        "mp3", "mp4", "avi", "mkv", "mov", "wav", "flac",
-        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-        "zip", "tar", "gz", "bz2", "xz", "7z", "rar",
-        "wasm", "pyc", "class",
+        "exe", "dll", "so", "dylib", "a", "o", "obj", "png", "jpg", "jpeg", "gif", "bmp", "ico",
+        "webp", "mp3", "mp4", "avi", "mkv", "mov", "wav", "flac", "pdf", "doc", "docx", "xls",
+        "xlsx", "ppt", "pptx", "zip", "tar", "gz", "bz2", "xz", "7z", "rar", "wasm", "pyc",
+        "class",
     ]
-        .into_iter()
-        .collect()
+    .into_iter()
+    .collect()
 });
 
 /// Represents a file with its content and metadata.
@@ -56,7 +41,7 @@ pub enum FileContent {
     /// Binary content with file size
     Binary {
         /// Size of the binary file in bytes
-        size: u64
+        size: u64,
     },
 }
 
@@ -79,11 +64,7 @@ impl FileData {
 
     /// Creates a new binary file data.
     #[must_use]
-    pub fn new_binary(
-        absolute_path: PathBuf,
-        relative_path: String,
-        size: u64,
-    ) -> Self {
+    pub fn new_binary(absolute_path: PathBuf, relative_path: String, size: u64) -> Self {
         Self {
             absolute_path,
             relative_path,
@@ -142,7 +123,6 @@ impl FileData {
 ///
 /// Returns an error if the file cannot be opened or read.
 pub(crate) fn is_likely_binary(path: &Path) -> Result<bool> {
-
     const BUFFER_SIZE: usize = 8192;
     const ASCII_THRESHOLD: f64 = 0.85;
 
@@ -171,8 +151,17 @@ pub(crate) fn is_likely_binary(path: &Path) -> Result<bool> {
 }
 
 /// Checks if a file extension suggests a text file.
-#[must_use]
+#[allow(dead_code)]
 pub(crate) fn has_text_extension(path: &Path) -> bool {
+    static TEXT_EXTENSIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+        [
+            "rs", "toml", "md", "txt", "json", "yaml", "yml", "js", "ts", "jsx", "tsx", "py", "go",
+            "java", "c", "cpp", "h", "hpp", "cs", "rb", "php", "html", "css", "scss", "sass",
+            "xml", "svg", "sh", "bash", "zsh", "fish", "vim", "lua",
+        ]
+        .into_iter()
+        .collect()
+    });
     path.extension()
         .and_then(|ext| ext.to_str())
         .map(|ext| TEXT_EXTENSIONS.contains(ext))
@@ -192,8 +181,8 @@ pub(crate) fn has_binary_extension(path: &Path) -> bool {
 mod tests {
     use super::*;
     use assert_fs::prelude::*;
-    use std::io::Write;
     use std::fs::File;
+    use std::io::Write;
 
     #[test]
     fn test_file_data_text() {
@@ -212,11 +201,7 @@ mod tests {
 
     #[test]
     fn test_file_data_binary() {
-        let data = FileData::new_binary(
-            PathBuf::from("test.exe"),
-            "test.exe".to_string(),
-            1024,
-        );
+        let data = FileData::new_binary(PathBuf::from("test.exe"), "test.exe".to_string(), 1024);
 
         assert!(data.is_binary());
         assert!(!data.is_text());
@@ -284,11 +269,7 @@ mod tests {
 
     #[test]
     fn test_line_count_binary() {
-        let data = FileData::new_binary(
-            PathBuf::from("test.exe"),
-            "test.exe".to_string(),
-            1024,
-        );
+        let data = FileData::new_binary(PathBuf::from("test.exe"), "test.exe".to_string(), 1024);
 
         assert_eq!(data.line_count(), None);
     }
