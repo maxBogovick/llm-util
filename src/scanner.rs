@@ -96,6 +96,8 @@ impl Scanner {
             let code_filter = self.code_filter.clone();
             let include_binary = self.include_binary;
             let file_filter = file_filter.clone();
+            let scan_start = scan_start;
+            let scan_timeout = scan_timeout;
             Box::new(move |result| {
                 if scan_start.elapsed() > scan_timeout {
                     warn!("Scan timeout reached after 30 seconds");
@@ -109,16 +111,22 @@ impl Scanner {
                         if !file_filter.should_process(entry.path()) {
                             return WalkState::Continue; // Пропускаем файл
                         }
-                        stats.lock().unwrap().total_files += 1;
 
-                        match Self::process_entry(
-                            &entry,
-                            &root,
-                            tokenizer.as_ref(),
-                            &code_filter,
-                            include_binary,
-                            &mut stats.lock().unwrap(),
-                        ) {
+                        // Process entry and update stats atomically
+                        let entry_result = {
+                            let mut stats_guard = stats.lock().unwrap();
+                            stats_guard.total_files += 1;
+                            Self::process_entry(
+                                &entry,
+                                &root,
+                                tokenizer.as_ref(),
+                                &code_filter,
+                                include_binary,
+                                &mut *stats_guard,
+                            )
+                        };
+
+                        match entry_result {
                             Ok(Some(file_data)) => {
                                 files.lock().unwrap().push(file_data);
                             }
@@ -142,18 +150,22 @@ impl Scanner {
             })
         });
 
-        // Unwrap results
-        let mut files = Arc::try_unwrap(files)
-            .map(|m| m.into_inner().unwrap())
-            .unwrap_or_else(|arc| arc.lock().unwrap().clone());
+        // Extract results - use simple lock approach to avoid deadlock
+        // walker.run() is blocking, so all threads should be done here
+        let mut files = {
+            let guard = files.lock().unwrap();
+            guard.clone()
+        };
 
-        let errors = Arc::try_unwrap(errors)
-            .map(|m| m.into_inner().unwrap())
-            .unwrap_or_else(|arc| arc.lock().unwrap().clone());
+        let errors = {
+            let guard = errors.lock().unwrap();
+            guard.clone()
+        };
 
-        let stats = Arc::try_unwrap(stats)
-            .map(|m| m.into_inner().unwrap())
-            .unwrap_or_else(|arc| (*arc.lock().unwrap()).clone());
+        let stats = {
+            let guard = stats.lock().unwrap();
+            (*guard).clone()
+        };
 
         // Report statistics
         debug!(
