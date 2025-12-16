@@ -1,6 +1,7 @@
 use crate::{
     config::{Config, OutputFormat},
     error::{Error, Result},
+    preset::{LLMPreset, PresetKind},
     splitter::Chunk,
 };
 use serde::Serialize;
@@ -15,6 +16,7 @@ struct TemplateContext<'a> {
     total_tokens: usize,
     files: Vec<FileView<'a>>,
     metadata: ContextMetadata,
+    preset: Option<PresetContext>,
 }
 
 #[derive(Serialize)]
@@ -33,10 +35,23 @@ struct ContextMetadata {
     format: String,
 }
 
+#[derive(Serialize)]
+struct PresetContext {
+    id: String,
+    name: String,
+    description: String,
+    system_prompt: String,
+    user_prompt_template: String,
+    suggested_model: String,
+    max_tokens_hint: usize,
+    temperature_hint: f32,
+}
+
 /// Template engine for rendering chunks in different formats.
 pub(crate) struct TemplateEngine {
     tera: Tera,
     format: OutputFormat,
+    preset: Option<LLMPreset>,
 }
 
 impl TemplateEngine {
@@ -51,12 +66,20 @@ impl TemplateEngine {
         // Register built-in templates
         Self::register_builtin_templates(&mut tera)?;
 
+        // Register preset templates if preset is configured
+        if config.preset.is_some() {
+            Self::register_preset_templates(&mut tera)?;
+        }
+
         // Register custom filters
         Self::register_filters(&mut tera);
+
+        let preset = config.preset.map(LLMPreset::for_kind);
 
         Ok(Self {
             tera,
             format: config.format,
+            preset,
         })
     }
 
@@ -76,6 +99,32 @@ impl TemplateEngine {
         // JSON template
         tera.add_raw_template("json", include_str!("../templates/json.tera"))
             .map_err(|e| Error::template("json", e))?;
+
+        Ok(())
+    }
+
+    /// Registers preset-specific templates.
+    fn register_preset_templates(tera: &mut Tera) -> Result<()> {
+        // Preset template for markdown
+        tera.add_raw_template(
+            "preset_markdown",
+            include_str!("../templates/preset_markdown.tera"),
+        )
+            .map_err(|e| Error::template("preset_markdown", e))?;
+
+        // Preset template for XML
+        tera.add_raw_template(
+            "preset_xml",
+            include_str!("../templates/preset_xml.tera"),
+        )
+            .map_err(|e| Error::template("preset_xml", e))?;
+
+        // Preset template for JSON
+        tera.add_raw_template(
+            "preset_json",
+            include_str!("../templates/preset_json.tera"),
+        )
+            .map_err(|e| Error::template("preset_json", e))?;
 
         Ok(())
     }
@@ -227,9 +276,18 @@ impl TemplateEngine {
     ///
     /// Returns an error if template rendering fails.
     pub(crate) fn render(&self, chunk: &Chunk, total_chunks: usize) -> Result<String> {
-        let template_name = self.format.template_name();
+        // Choose template based on whether preset is used
+        let template_name = if self.preset.is_some() {
+            match self.format {
+                OutputFormat::Markdown => "preset_markdown",
+                OutputFormat::Xml => "preset_xml",
+                OutputFormat::Json => "preset_json",
+            }
+        } else {
+            self.format.template_name()
+        };
 
-        let files: Vec<FileView> = chunk
+        let files: Vec<FileView<'_>> = chunk
             .files
             .iter()
             .map(|f| {
@@ -247,6 +305,17 @@ impl TemplateEngine {
             })
             .collect();
 
+        let preset_context = self.preset.as_ref().map(|preset| PresetContext {
+            id: preset.id.clone(),
+            name: preset.name.clone(),
+            description: preset.description.clone(),
+            system_prompt: preset.system_prompt.clone(),
+            user_prompt_template: preset.user_prompt_template.clone(),
+            suggested_model: preset.suggested_model.clone(),
+            max_tokens_hint: preset.max_tokens_hint,
+            temperature_hint: preset.temperature_hint,
+        });
+
         let context = TemplateContext {
             chunk_index: chunk.index + 1,
             total_chunks,
@@ -259,6 +328,7 @@ impl TemplateEngine {
                     .to_string(),
                 format: format!("{:?}", self.format),
             },
+            preset: preset_context,
         };
 
         let mut tera_context = Context::new();

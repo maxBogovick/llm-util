@@ -1,5 +1,6 @@
 use crate::error::{Error, Result};
 use crate::filter::{FileFilterConfig, FilterConfig};
+use crate::preset::PresetKind;
 use crate::token::TokenizerKind;
 use std::path::PathBuf;
 
@@ -79,6 +80,9 @@ pub struct Config {
 
     /// Code filtering configuration
     pub file_filter_config: FileFilterConfig,
+
+    /// LLM preset for specialized output
+    pub preset: Option<PresetKind>,
 
     /// Dry run mode (no file writes)
     pub dry_run: bool,
@@ -191,6 +195,7 @@ impl Default for Config {
             prefer_line_boundaries: true,
             filter_config: FilterConfig::default(),
             file_filter_config: FileFilterConfig::default(),
+            preset: None,
             dry_run: false,
             include_binary_files: false,
             backup_existing: true,
@@ -212,6 +217,7 @@ pub struct ConfigBuilder {
     prefer_line_boundaries: Option<bool>,
     filter_config: Option<FilterConfig>,
     file_filter_config: Option<FileFilterConfig>,
+    preset: Option<PresetKind>,
     dry_run: bool,
     include_binary_files: bool,
     backup_existing: Option<bool>,
@@ -318,6 +324,13 @@ impl ConfigBuilder {
         self
     }
 
+    /// Sets the LLM preset.
+    #[must_use]
+    pub fn preset(mut self, preset: PresetKind) -> Self {
+        self.preset = Some(preset);
+        self
+    }
+
     /// Builds the configuration.
     ///
     /// # Errors
@@ -340,6 +353,7 @@ impl ConfigBuilder {
             prefer_line_boundaries: self.prefer_line_boundaries.unwrap_or(true),
             filter_config: self.filter_config.unwrap_or_default(),
             file_filter_config: self.file_filter_config.unwrap_or_default(),
+            preset: self.preset,
             dry_run: self.dry_run,
             include_binary_files: self.include_binary_files,
             backup_existing: self.backup_existing.unwrap_or(true),

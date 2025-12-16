@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<llm_prompt>
+  <preset_info>
+    <id>{{ ctx.preset.id }}</id>
+    <name>{{ ctx.preset.name | xml_escape }}</name>
+    <description>{{ ctx.preset.description | xml_escape }}</description>
+    <suggested_model>{{ ctx.preset.suggested_model | xml_escape }}</suggested_model>
+    <max_tokens_hint>{{ ctx.preset.max_tokens_hint }}</max_tokens_hint>
+    <temperature_hint>{{ ctx.preset.temperature_hint }}</temperature_hint>
+  </preset_info>
+
+  <system_prompt><![CDATA[
+{{ ctx.preset.system_prompt }}
+  ]]></system_prompt>
+
+  <user_prompt_template><![CDATA[
+{{ ctx.preset.user_prompt_template }}
+  ]]></user_prompt_template>
+
+  <metadata>
+    <chunk_index>{{ ctx.chunk_index }}</chunk_index>
+    <total_chunks>{{ ctx.total_chunks }}</total_chunks>
+    <files_in_chunk>{{ ctx.chunk_files }}</files_in_chunk>
+    <total_tokens>{{ ctx.total_tokens }}</total_tokens>
+    <generated_at>{{ ctx.metadata.generated_at }}</generated_at>
+  </metadata>
+
+  <codebase>
+    {% for file in ctx.files %}
+    <file path="{{ file.relative_path | xml_escape }}">
+      <metadata>
+        <is_binary>{{ file.is_binary }}</is_binary>
+        <token_count>{{ file.token_count }}</token_count>
+        {% if file.lines %}<lines>{{ file.lines }}</lines>{% endif %}
+      </metadata>
+      {% if not file.is_binary %}
+      <content><![CDATA[
+{{ file.content }}
+      ]]></content>
+      {% else %}
+      <content encoding="binary">
+        <info>Binary file - {{ file.token_count }} bytes</info>
+      </content>
+      {% endif %}
+    </file>
+    {% endfor %}
+  </codebase>
+
+  <instructions>
+    <![CDATA[
+Based on the "{{ ctx.preset.name }}" preset, please analyze the provided codebase and deliver results according to the specified system prompt and user prompt template above.
+
+This is part {{ ctx.chunk_index }} of {{ ctx.total_chunks }} total chunks.
+    ]]>
+  </instructions>
+</llm_prompt>

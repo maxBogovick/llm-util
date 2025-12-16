@@ -220,7 +220,7 @@ impl CodeFilter {
 /// Trait for language-specific code filters.
 trait LanguageFilter {
     /// Returns the filter configuration.
-    fn config(&self) -> &FilterConfig;
+    #[warn(unused)] fn config(&self) -> &FilterConfig;
 
     /// Filters the content according to language rules.
     fn filter(&self, content: &str) -> String;

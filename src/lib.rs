@@ -56,13 +56,15 @@ mod splitter;
 mod template;
 mod token;
 mod writer;
-mod preset;
+
+pub mod preset;
 
 pub use config::{Config, ConfigBuilder, OutputFormat};
 pub use error::{Error, Result};
 pub use file::FileData;
 pub use filter::{CodeFilter, FileFilterConfig, FilterConfig};
 pub use pipeline::{Pipeline, PipelineStats};
+pub use preset::{LLMPreset, PresetKind};
 pub use splitter::Chunk;
 pub use token::{TokenEstimator, TokenizerKind};
 

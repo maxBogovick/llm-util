@@ -1,44 +1,155 @@
+//! LLM preset configurations for different use cases.
+//!
+//! This module provides pre-configured templates for common LLM tasks like
+//! code review, documentation generation, refactoring, and more.
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Preset для различных задач LLM
+/// Type of preset for LLM tasks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PresetKind {
+    /// Comprehensive code review
+    CodeReview,
+    /// Documentation generation
+    Documentation,
+    /// Refactoring suggestions
+    Refactoring,
+    /// Bug detection and analysis
+    BugAnalysis,
+    /// Security audit
+    SecurityAudit,
+    /// Test generation
+    TestGeneration,
+    /// Architecture review
+    ArchitectureReview,
+    /// Performance analysis
+    PerformanceAnalysis,
+    /// Migration planning
+    MigrationPlan,
+    /// API design review
+    ApiDesign,
+}
+
+impl PresetKind {
+    /// Returns the ID string for this preset.
+    #[must_use]
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::CodeReview => "code-review",
+            Self::Documentation => "documentation",
+            Self::Refactoring => "refactoring",
+            Self::BugAnalysis => "bug-analysis",
+            Self::SecurityAudit => "security-audit",
+            Self::TestGeneration => "test-generation",
+            Self::ArchitectureReview => "architecture-review",
+            Self::PerformanceAnalysis => "performance-analysis",
+            Self::MigrationPlan => "migration-plan",
+            Self::ApiDesign => "api-design",
+        }
+    }
+
+    /// Returns all available preset kinds.
+    #[must_use]
+    pub const fn all() -> &'static [Self] {
+        &[
+            Self::CodeReview,
+            Self::Documentation,
+            Self::Refactoring,
+            Self::BugAnalysis,
+            Self::SecurityAudit,
+            Self::TestGeneration,
+            Self::ArchitectureReview,
+            Self::PerformanceAnalysis,
+            Self::MigrationPlan,
+            Self::ApiDesign,
+        ]
+    }
+
+    /// Parse preset kind from string ID.
+    #[must_use]
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "code-review" => Some(Self::CodeReview),
+            "documentation" => Some(Self::Documentation),
+            "refactoring" => Some(Self::Refactoring),
+            "bug-analysis" => Some(Self::BugAnalysis),
+            "security-audit" => Some(Self::SecurityAudit),
+            "test-generation" => Some(Self::TestGeneration),
+            "architecture-review" => Some(Self::ArchitectureReview),
+            "performance-analysis" => Some(Self::PerformanceAnalysis),
+            "migration-plan" => Some(Self::MigrationPlan),
+            "api-design" => Some(Self::ApiDesign),
+            _ => None,
+        }
+    }
+}
+
+/// Preset configuration for LLM tasks.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct LLMPreset {
+pub struct LLMPreset {
+    /// Unique preset identifier
     pub id: String,
+    /// Human-readable name
     pub name: String,
+    /// Description of the preset
     pub description: String,
+    /// System prompt for the LLM
     pub system_prompt: String,
+    /// User prompt template
     pub user_prompt_template: String,
+    /// Suggested model for this task
     pub suggested_model: String,
+    /// Maximum tokens hint
     pub max_tokens_hint: usize,
+    /// Temperature hint for generation
     pub temperature_hint: f32,
+    /// Include metadata in output
     pub include_metadata: bool,
+    /// Include directory structure
     pub include_structure: bool,
+    /// Code block style
     pub code_block_style: CodeBlockStyle,
 }
 
+/// Code block formatting style.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub(crate) enum CodeBlockStyle {
+pub enum CodeBlockStyle {
+    /// Markdown code blocks
     Markdown,
+    /// XML CDATA sections
     Xml,
+    /// Inline code
     Inline,
 }
 
 impl LLMPreset {
-    /// Создает коллекцию стандартных preset'ов
-    pub(crate) fn standard_presets() -> HashMap<String, Self> {
+    /// Creates a preset for the given kind.
+    #[must_use]
+    pub fn for_kind(kind: PresetKind) -> Self {
+        match kind {
+            PresetKind::CodeReview => Self::code_review(),
+            PresetKind::Documentation => Self::documentation(),
+            PresetKind::Refactoring => Self::refactoring(),
+            PresetKind::BugAnalysis => Self::bug_analysis(),
+            PresetKind::SecurityAudit => Self::security_audit(),
+            PresetKind::TestGeneration => Self::test_generation(),
+            PresetKind::ArchitectureReview => Self::architecture_review(),
+            PresetKind::PerformanceAnalysis => Self::performance_analysis(),
+            PresetKind::MigrationPlan => Self::migration_plan(),
+            PresetKind::ApiDesign => Self::api_design(),
+        }
+    }
+
+    /// Creates a collection of all standard presets.
+    #[must_use]
+    pub fn all_presets() -> HashMap<String, Self> {
         let mut presets = HashMap::new();
 
-        presets.insert("code-review".to_string(), Self::code_review());
-        presets.insert("documentation".to_string(), Self::documentation());
-        presets.insert("refactoring".to_string(), Self::refactoring());
-        presets.insert("bug-analysis".to_string(), Self::bug_analysis());
-        presets.insert("security-audit".to_string(), Self::security_audit());
-        presets.insert("test-generation".to_string(), Self::test_generation());
-        presets.insert("architecture-review".to_string(), Self::architecture_review());
-        presets.insert("performance-analysis".to_string(), Self::performance_analysis());
-        presets.insert("migration-plan".to_string(), Self::migration_plan());
-        presets.insert("api-design".to_string(), Self::api_design());
+        for kind in PresetKind::all() {
+            let preset = Self::for_kind(*kind);
+            presets.insert(kind.id().to_string(), preset);
+        }
 
         presets
     }

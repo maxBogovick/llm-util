@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 
+#[warn(unused)]
 static TEXT_EXTENSIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     [
         "rs", "toml", "md", "txt", "json", "yaml", "yml",

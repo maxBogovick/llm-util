@@ -1,6 +1,6 @@
 use anyhow::Context;
 use clap::Parser;
-use llm_utl::{Config, FileFilterConfig, FilterConfig, OutputFormat, Pipeline, TokenizerKind};
+use llm_utl::{Config, FileFilterConfig, FilterConfig, OutputFormat, Pipeline, PresetKind, TokenizerKind};
 use std::path::PathBuf;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
@@ -40,6 +40,10 @@ struct Cli {
     /// Tokenizer to use
     #[arg(long, value_enum, default_value = "enhanced")]
     tokenizer: CliTokenizer,
+
+    /// LLM preset for specialized output
+    #[arg(short, long, value_enum)]
+    preset: Option<CliPreset>,
 
     /// Dry run (don't write files)
     #[arg(long)]
@@ -82,6 +86,47 @@ impl From<CliTokenizer> for TokenizerKind {
     }
 }
 
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum CliPreset {
+    /// Comprehensive code review
+    CodeReview,
+    /// Documentation generation
+    Documentation,
+    /// Refactoring suggestions
+    Refactoring,
+    /// Bug analysis
+    BugAnalysis,
+    /// Security audit
+    SecurityAudit,
+    /// Test generation
+    TestGeneration,
+    /// Architecture review
+    ArchitectureReview,
+    /// Performance analysis
+    PerformanceAnalysis,
+    /// Migration planning
+    MigrationPlan,
+    /// API design review
+    ApiDesign,
+}
+
+impl From<CliPreset> for PresetKind {
+    fn from(p: CliPreset) -> Self {
+        match p {
+            CliPreset::CodeReview => Self::CodeReview,
+            CliPreset::Documentation => Self::Documentation,
+            CliPreset::Refactoring => Self::Refactoring,
+            CliPreset::BugAnalysis => Self::BugAnalysis,
+            CliPreset::SecurityAudit => Self::SecurityAudit,
+            CliPreset::TestGeneration => Self::TestGeneration,
+            CliPreset::ArchitectureReview => Self::ArchitectureReview,
+            CliPreset::PerformanceAnalysis => Self::PerformanceAnalysis,
+            CliPreset::MigrationPlan => Self::MigrationPlan,
+            CliPreset::ApiDesign => Self::ApiDesign,
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -89,7 +134,7 @@ fn main() -> anyhow::Result<()> {
     setup_tracing(cli.verbose)?;
 
     // Построение конфигурации
-    let config = Config::builder()
+    let mut builder = Config::builder()
         .root_dir(cli.dir)
         .output_dir(cli.out)
         .output_pattern(cli.pattern)
@@ -110,8 +155,14 @@ fn main() -> anyhow::Result<()> {
                                 //.allow_only(vec!("*.toml".to_string()))
                                 //.allow_only(vec!(PathBuf::from("pipeline.rs")))
             .exclude_directories(vec!("**/templates".to_string(), "**/out".to_string(), "**/target".to_string()))
-        )
-        .build()
+        );
+
+    // Добавление preset если указан
+    if let Some(preset) = cli.preset {
+        builder = builder.preset(preset.into());
+    }
+
+    let config = builder.build()
         .context("Failed to build configuration")?;
 
     // Запуск pipeline
