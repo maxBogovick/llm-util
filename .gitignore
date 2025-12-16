@@ -3,3 +3,4 @@ CLAUDE.md
 Cargo.lock
 .idea
 /out
+/output

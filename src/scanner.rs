@@ -14,6 +14,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
+use std::time::{Duration, Instant};
 use tracing::{debug, trace, warn};
 
 /// Statistics collected during scanning.
@@ -73,6 +74,8 @@ impl Scanner {
         let stats_clone = Arc::clone(&stats);
 
         debug!("Starting parallel scan of {}", self.root_dir.display());
+        let scan_timeout = Duration::from_secs(30); // 30 секунд
+        let scan_start = Instant::now();
 
         let walker = WalkBuilder::new(&self.root_dir)
             .git_ignore(true)
@@ -94,6 +97,10 @@ impl Scanner {
             let include_binary = self.include_binary;
             let file_filter = file_filter.clone();
             Box::new(move |result| {
+                if scan_start.elapsed() > scan_timeout {
+                    warn!("Scan timeout reached after 30 seconds");
+                    return WalkState::Quit;
+                }
                 match result {
                     Ok(entry) if entry.file_type().map_or(false, |ft| ft.is_file()) => {
                         if entry.file_name() == "Cargo.lock" {

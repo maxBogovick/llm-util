@@ -86,7 +86,7 @@ impl FileFilter {
 
         trace!("Checking if should process: {:?}", path);
 
-        // Проверка include patterns (если указаны)
+        // Check include patterns first (whitelist mode)
         if let Some(ref include) = self.include_files {
             let matches = include.is_match(path);
             trace!("Include pattern match for {:?}: {}", path, matches);
@@ -95,20 +95,29 @@ impl FileFilter {
             }
         }
 
-        // Проверка exclude directories
-        if self.exclude_directories.is_match(path) {
+        // Check if file itself is excluded
+        if self.exclude_files.is_match(path) {
+            trace!("Excluded by file pattern: {:?}", path);
+            return false;
+        }
+
+        // Check if any parent directory is excluded
+        // FIXED: Use a more efficient approach with early termination
+        let path_str = path.to_string_lossy();
+        if self.exclude_directories.is_match(&*path_str) {
             trace!("Excluded by directory pattern: {:?}", path);
             return false;
         }
 
-        // Проверка на вхождение в исключенные директории
-        // Ограничиваем глубину проверки предков для безопасности
-        let mut ancestor_count = 0;
-        const MAX_ANCESTORS: usize = 100;
+        // Check ancestors more carefully
+        let mut checked = 0;
+        const MAX_CHECK: usize = 50; // Reasonable limit for directory depth
 
-        for ancestor in path.ancestors().skip(1) {
-            if ancestor_count >= MAX_ANCESTORS {
-                trace!("Reached max ancestors limit for {:?}", path);
+        for ancestor in path.ancestors().skip(1).take(MAX_CHECK) {
+            checked += 1;
+
+            // Stop at filesystem root
+            if ancestor.parent().is_none() {
                 break;
             }
 
@@ -116,17 +125,9 @@ impl FileFilter {
                 trace!("Excluded by ancestor directory pattern: {:?} (ancestor: {:?})", path, ancestor);
                 return false;
             }
-
-            ancestor_count += 1;
         }
 
-        // Проверка exclude files
-        if self.exclude_files.is_match(path) {
-            trace!("Excluded by file pattern: {:?}", path);
-            return false;
-        }
-
-        trace!("Will process: {:?}", path);
+        trace!("Will process: {:?} (checked {} ancestors)", path, checked);
         true
     }
 }
