@@ -154,11 +154,13 @@ let config = Config::builder()
                 "**/.git".to_string(),
             ])
             .exclude_files(vec!["*.lock".to_string()])
-            // Or whitelist specific files:
-            // .allow_only(vec!["src/**/*.rs".to_string()])
+            // Or whitelist specific files (use glob patterns with **/):
+            // .allow_only(vec!["**/*.rs".to_string(), "**/*.toml".to_string()])
     )
     .build()?;
 ```
+
+**Important**: When using `.allow_only()`, use glob patterns like `**/*.rs` instead of `*.rs` to match files in all subdirectories. The pattern `*.rs` only matches files in the root directory.
 
 ### Custom Tokenizers
 
@@ -291,6 +293,66 @@ cargo fmt
 
 # Lint
 cargo clippy
+```
+
+## Troubleshooting
+
+### "No processable files found" Error
+
+If you see this error:
+```
+Error: No processable files found in '.'.
+```
+
+**Common causes:**
+
+1. **Wrong directory**: The tool is running in an empty directory or a directory without source files.
+   ```bash
+   # ❌ Wrong - running in home directory
+   cd ~
+   llm-utl
+
+   # ✅ Correct - specify your project directory
+   llm-utl --dir ./my-project
+   ```
+
+2. **All files are gitignored**: Your `.gitignore` excludes all files in the directory.
+   ```bash
+   # Check what files would be scanned
+   llm-utl --dir ./my-project --dry-run -v
+   ```
+
+3. **No source files**: The directory contains only non-source files (images, binaries, etc.).
+   ```bash
+   # Make sure directory contains code files
+   ls ./my-project/*.rs  # or *.py, *.js, etc.
+   ```
+
+**Quick fix:**
+```bash
+# Always specify the directory containing your source code
+llm-utl --dir ./path/to/your/project --out ./prompts
+```
+
+### Permission Issues
+
+If you encounter permission errors:
+```bash
+# Ensure you have read access to source directory
+# and write access to output directory
+chmod +r ./src
+chmod +w ./out
+```
+
+### Large Files
+
+If processing is slow with very large files:
+```bash
+# Increase token limit for large codebases
+llm-utl --max-tokens 200000
+
+# Or use simple tokenizer for better performance
+llm-utl --tokenizer simple
 ```
 
 ## Contributing

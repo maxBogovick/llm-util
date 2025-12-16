@@ -10,15 +10,27 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
     version,
     author,
     about = "Convert code repositories into LLM prompts",
-    long_about = None
+    long_about = "Convert code repositories into LLM-friendly prompts with intelligent chunking.\n\n\
+    This tool scans a directory, processes source files, and generates optimized prompts \
+    for use with Large Language Models. It respects .gitignore patterns and provides \
+    various presets for different analysis tasks.\n\n\
+    USAGE EXAMPLES:\n  \
+      # Scan current directory\n  \
+      llm-utl\n\n  \
+      # Scan a specific project\n  \
+      llm-utl --dir ./my-project --out ./prompts\n\n  \
+      # Use a preset for code review\n  \
+      llm-utl --dir ./src --preset code-review\n\n  \
+      # Generate JSON output with custom token limit\n  \
+      llm-utl --dir ./src --format json --max-tokens 150000"
 )]
 struct Cli {
-    /// Root directory to scan
-    #[arg(short, long, default_value = ".")]
+    /// Root directory to scan for source files (must contain code files)
+    #[arg(short, long, default_value = ".", value_name = "PATH")]
     dir: PathBuf,
 
     /// Output directory for generated prompts
-    #[arg(short, long, default_value = "out")]
+    #[arg(short, long, default_value = "out", value_name = "PATH")]
     out: PathBuf,
 
     /// Output filename pattern

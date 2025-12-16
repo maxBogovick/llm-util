@@ -45,7 +45,7 @@ pub enum Error {
     },
 
     /// No processable files found in directory.
-    #[error("No processable files found in '{path}'. Check .gitignore rules or file permissions.")]
+    #[error("No processable files found in '{path}'.\n\nPossible causes:\n  • Directory is empty or contains only ignored files\n  • All files are excluded by .gitignore patterns\n  • Wrong directory specified (use --dir to set the correct path)\n\nExample: llm-utl --dir ./my-project --out ./prompts")]
     NoFiles {
         /// Directory that was scanned
         path: PathBuf,

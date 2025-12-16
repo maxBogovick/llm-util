@@ -82,30 +82,51 @@ impl FileFilter {
     }
 
     pub(crate) fn should_process(&self, path: &Path) -> bool {
+        use tracing::trace;
+
+        trace!("Checking if should process: {:?}", path);
+
         // Проверка include patterns (если указаны)
         if let Some(ref include) = self.include_files {
-            if !include.is_match(path) {
+            let matches = include.is_match(path);
+            trace!("Include pattern match for {:?}: {}", path, matches);
+            if !matches {
                 return false;
             }
         }
 
         // Проверка exclude directories
         if self.exclude_directories.is_match(path) {
+            trace!("Excluded by directory pattern: {:?}", path);
             return false;
         }
 
         // Проверка на вхождение в исключенные директории
+        // Ограничиваем глубину проверки предков для безопасности
+        let mut ancestor_count = 0;
+        const MAX_ANCESTORS: usize = 100;
+
         for ancestor in path.ancestors().skip(1) {
+            if ancestor_count >= MAX_ANCESTORS {
+                trace!("Reached max ancestors limit for {:?}", path);
+                break;
+            }
+
             if self.exclude_directories.is_match(ancestor) {
+                trace!("Excluded by ancestor directory pattern: {:?} (ancestor: {:?})", path, ancestor);
                 return false;
             }
+
+            ancestor_count += 1;
         }
 
         // Проверка exclude files
         if self.exclude_files.is_match(path) {
+            trace!("Excluded by file pattern: {:?}", path);
             return false;
         }
 
+        trace!("Will process: {:?}", path);
         true
     }
 }
