@@ -2,6 +2,7 @@ use crate::error::{Error, Result};
 use crate::filter::{FileFilterConfig, FilterConfig};
 use crate::preset::PresetKind;
 use crate::token::TokenizerKind;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 const DEFAULT_MAX_TOKENS: usize = 100_000;
@@ -18,26 +19,36 @@ pub enum OutputFormat {
     Xml,
     /// JSON format with metadata
     Json,
+    /// Custom format with external template
+    Custom,
 }
 
 impl OutputFormat {
     /// Returns the file extension for this format.
+    ///
+    /// For Custom format, returns a default extension "txt".
+    /// Use `Config::custom_extension` for the actual custom extension.
     #[must_use]
     pub const fn extension(self) -> &'static str {
         match self {
             Self::Markdown => "md",
             Self::Xml => "xml",
             Self::Json => "json",
+            Self::Custom => "txt",
         }
     }
 
     /// Returns the template name for this format.
+    ///
+    /// For Custom format, returns a default name "custom".
+    /// Use `Config::custom_format_name` for the actual custom template name.
     #[must_use]
     pub const fn template_name(self) -> &'static str {
         match self {
             Self::Markdown => "markdown",
             Self::Xml => "xml",
             Self::Json => "json",
+            Self::Custom => "custom",
         }
     }
 }
@@ -92,6 +103,18 @@ pub struct Config {
 
     /// Create backups of existing files
     pub backup_existing: bool,
+
+    /// Path to external template file
+    pub template_path: Option<PathBuf>,
+
+    /// Custom format name (used with Custom output format)
+    pub custom_format_name: Option<String>,
+
+    /// Custom file extension (used with Custom output format)
+    pub custom_extension: Option<String>,
+
+    /// Custom data to pass to templates
+    pub custom_data: HashMap<String, serde_json::Value>,
 }
 
 impl Config {
@@ -171,6 +194,60 @@ impl Config {
             ));
         }
 
+        // Validate template configuration
+        if let Some(ref template_path) = self.template_path {
+            // Validate template file exists and is valid
+            if !template_path.exists() {
+                return Err(Error::config(format!(
+                    "Template file does not exist: {}",
+                    template_path.display()
+                )));
+            }
+
+            if !template_path.is_file() {
+                return Err(Error::config(format!(
+                    "Template path is not a file: {}",
+                    template_path.display()
+                )));
+            }
+
+            // Validate template using TemplateValidator
+            crate::template_validator::TemplateValidator::validate_template(template_path)?;
+        }
+
+        // Validate Custom format requirements
+        if matches!(self.format, OutputFormat::Custom) {
+            if self.custom_format_name.is_none() {
+                return Err(Error::config(
+                    "Custom format requires custom_format_name. \
+                    Use Config::builder().custom_format_name(\"my_format\")",
+                ));
+            }
+
+            if self.custom_extension.is_none() {
+                return Err(Error::config(
+                    "Custom format requires custom_extension. \
+                    Use Config::builder().custom_extension(\"txt\")",
+                ));
+            }
+
+            if self.template_path.is_none() {
+                return Err(Error::config(
+                    "Custom format requires template_path. \
+                    Use Config::builder().template_path(\"./template.tera\")",
+                ));
+            }
+        } else {
+            // Warn if custom settings are provided for non-Custom format
+            if self.custom_format_name.is_some() || self.custom_extension.is_some() {
+                tracing::warn!(
+                    "custom_format_name and custom_extension are only used with OutputFormat::Custom. \
+                    Current format: {:?}",
+                    self.format
+                );
+            }
+        }
+
         Ok(())
     }
 
@@ -199,6 +276,10 @@ impl Default for Config {
             dry_run: false,
             include_binary_files: false,
             backup_existing: true,
+            template_path: None,
+            custom_format_name: None,
+            custom_extension: None,
+            custom_data: HashMap::new(),
         }
     }
 }
@@ -221,6 +302,10 @@ pub struct ConfigBuilder {
     dry_run: bool,
     include_binary_files: bool,
     backup_existing: Option<bool>,
+    template_path: Option<PathBuf>,
+    custom_format_name: Option<String>,
+    custom_extension: Option<String>,
+    custom_data: HashMap<String, serde_json::Value>,
 }
 
 impl ConfigBuilder {
@@ -331,6 +416,78 @@ impl ConfigBuilder {
         self
     }
 
+    /// Sets the path to an external template file.
+    ///
+    /// When provided, this template will be used instead of the built-in template
+    /// for the selected format. The template file must exist and contain valid Tera syntax.
+    #[must_use]
+    pub fn template_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.template_path = Some(path.into());
+        self
+    }
+
+    /// Sets the custom format name.
+    ///
+    /// Required when using `OutputFormat::Custom`. This name will be used
+    /// internally to identify the custom template.
+    #[must_use]
+    pub fn custom_format_name(mut self, name: impl Into<String>) -> Self {
+        self.custom_format_name = Some(name.into());
+        self
+    }
+
+    /// Sets the custom file extension.
+    ///
+    /// Required when using `OutputFormat::Custom`. This extension will be used
+    /// for output files (without the leading dot).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use llm_utl::{Config, OutputFormat};
+    ///
+    /// let config = Config::builder()
+    ///     .root_dir(".")
+    ///     .format(OutputFormat::Custom)
+    ///     .custom_extension("txt")  // Files will be .txt
+    ///     .custom_format_name("my_format")
+    ///     .template_path("./template.tera")
+    ///     .build()
+    ///     .expect("valid config");
+    /// ```
+    #[must_use]
+    pub fn custom_extension(mut self, ext: impl Into<String>) -> Self {
+        self.custom_extension = Some(ext.into());
+        self
+    }
+
+    /// Sets custom data to be passed to templates.
+    ///
+    /// This data will be available in templates under the `ctx.custom` namespace.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use llm_utl::Config;
+    /// use std::collections::HashMap;
+    /// use serde_json::Value;
+    ///
+    /// let mut custom_data = HashMap::new();
+    /// custom_data.insert("version".to_string(), Value::String("1.0.0".to_string()));
+    /// custom_data.insert("author".to_string(), Value::String("John Doe".to_string()));
+    ///
+    /// let config = Config::builder()
+    ///     .root_dir(".")
+    ///     .custom_data(custom_data)
+    ///     .build()
+    ///     .expect("valid config");
+    /// ```
+    #[must_use]
+    pub fn custom_data(mut self, data: HashMap<String, serde_json::Value>) -> Self {
+        self.custom_data = data;
+        self
+    }
+
     /// Builds the configuration.
     ///
     /// # Errors
@@ -357,6 +514,10 @@ impl ConfigBuilder {
             dry_run: self.dry_run,
             include_binary_files: self.include_binary_files,
             backup_existing: self.backup_existing.unwrap_or(true),
+            template_path: self.template_path,
+            custom_format_name: self.custom_format_name,
+            custom_extension: self.custom_extension,
+            custom_data: self.custom_data,
         };
 
         config.validate()?;

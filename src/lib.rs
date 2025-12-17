@@ -54,6 +54,7 @@ mod pipeline;
 mod scanner;
 mod splitter;
 mod template;
+mod template_validator;
 mod token;
 mod writer;
 

@@ -6,9 +6,10 @@
 //! ## Examples
 //!
 //! ```no_run
-//! use llm_utl::prelude::*;
 //!
 //! // Simplest usage - scan current directory
+//! use llm_utl::api::{Format, Preset, Scan};
+//!
 //! Scan::current_dir().run()?;
 //!
 //! // Scan specific directory
@@ -44,7 +45,7 @@ use std::path::{Path, PathBuf};
 /// # Examples
 ///
 /// ```no_run
-/// use llm_utl::Scan;
+/// use llm_utl::api::*;
 ///
 /// // Basic usage
 /// Scan::current_dir().run()?;
@@ -52,7 +53,7 @@ use std::path::{Path, PathBuf};
 /// // With configuration
 /// Scan::dir("./src")
 ///     .max_tokens(150_000)
-///     .preset(llm_utl::Preset::CodeReview)
+///     .preset(Preset::CodeReview)
 ///     .run()?;
 /// # Ok::<(), llm_utl::Error>(())
 /// ```
@@ -69,6 +70,10 @@ pub struct Scan {
     allow_files: Vec<String>,
     excludes: Vec<String>,
     exclude_files: Vec<String>,
+    template_path: Option<PathBuf>,
+    custom_format_name: Option<String>,
+    custom_extension: Option<String>,
+    custom_data: std::collections::HashMap<String, serde_json::Value>,
 }
 
 /// Filtering options for code processing.
@@ -99,6 +104,10 @@ impl Default for Scan {
             excludes: default_excludes(),
             exclude_files: vec![],
             allow_files: vec![],
+            template_path: None,
+            custom_format_name: None,
+            custom_extension: None,
+            custom_data: std::collections::HashMap::new(),
         }
     }
 }
@@ -120,7 +129,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::Scan;
+    /// use llm_utl::api::*;
     ///
     /// let stats = Scan::current_dir().run()?;
     /// println!("Processed {} files", stats.total_files);
@@ -135,7 +144,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::Scan;
+    /// use llm_utl::api::*;
     ///
     /// Scan::dir("./src").run()?;
     /// Scan::dir("./my-project").run()?;
@@ -163,7 +172,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::{Scan, Format};
+    /// use llm_utl::api::*;
     ///
     /// Scan::dir("./src")
     ///     .format(Format::Json)
@@ -198,7 +207,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::{Scan, Preset};
+    /// use llm_utl::api::*;
     ///
     /// // Optimized for code review
     /// Scan::dir("./src")
@@ -213,6 +222,93 @@ impl Scan {
     /// ```
     pub fn preset(mut self, preset: Preset) -> Self {
         self.preset = Some(preset.into());
+        self
+    }
+
+    /// Use a custom external Tera template.
+    ///
+    /// The template will override the built-in template for the selected format.
+    /// For custom formats, combine with `.custom_format()`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use llm_utl::api::*;
+    ///
+    /// // Override built-in markdown template
+    /// Scan::dir("./src")
+    ///     .format(Format::Markdown)
+    ///     .template("./my-markdown.tera")
+    ///     .run()?;
+    ///
+    /// // Use completely custom format
+    /// Scan::dir("./src")
+    ///     .custom_format("my_format", "txt")
+    ///     .template("./custom.tera")
+    ///     .run()?;
+    /// # Ok::<(), llm_utl::Error>(())
+    /// ```
+    pub fn template(mut self, path: impl Into<PathBuf>) -> Self {
+        self.template_path = Some(path.into());
+        self
+    }
+
+    /// Define a custom output format with name and extension.
+    ///
+    /// Automatically sets format to `Format::Custom`. Requires a template
+    /// to be specified via `.template()`.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Internal template name
+    /// * `extension` - File extension for output files (without leading dot)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use llm_utl::api::*;
+    ///
+    /// Scan::dir("./src")
+    ///     .custom_format("my_format", "txt")
+    ///     .template("./custom.tera")
+    ///     .run()?;
+    /// # Ok::<(), llm_utl::Error>(())
+    /// ```
+    pub fn custom_format(mut self, name: impl Into<String>, extension: impl Into<String>) -> Self {
+        self.format = OutputFormat::Custom;
+        self.custom_format_name = Some(name.into());
+        self.custom_extension = Some(extension.into());
+        self
+    }
+
+    /// Add custom data to pass to templates.
+    ///
+    /// The data will be available in templates under `ctx.custom.<key>`.
+    /// Can be called multiple times to add more data.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use llm_utl::api::*;
+    /// use serde_json::json;
+    ///
+    /// Scan::dir("./src")
+    ///     .template("./custom.tera")
+    ///     .template_data("version", json!("1.0.0"))
+    ///     .template_data("author", json!("John Doe"))
+    ///     .template_data("project", json!("My Project"))
+    ///     .run()?;
+    /// # Ok::<(), llm_utl::Error>(())
+    /// ```
+    ///
+    /// In template:
+    /// ```tera
+    /// Project: {{ ctx.custom.project }}
+    /// Version: {{ ctx.custom.version }}
+    /// Author: {{ ctx.custom.author }}
+    /// ```
+    pub fn template_data(mut self, key: impl Into<String>, value: serde_json::Value) -> Self {
+        self.custom_data.insert(key.into(), value);
         self
     }
 
@@ -279,7 +375,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::Scan;
+    /// use llm_utl::api::*;
     ///
     /// Scan::dir("./project")
     ///     .exclude(["**/node_modules", "**/dist"])
@@ -336,7 +432,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::Scan;
+    /// use llm_utl::api::*;
     ///
     /// let stats = Scan::dir("./src").run()?;
     ///
@@ -376,6 +472,23 @@ impl Scan {
             builder = builder.preset(preset);
         }
 
+        // Add template configuration
+        if let Some(template_path) = self.template_path {
+            builder = builder.template_path(template_path);
+        }
+
+        if let Some(format_name) = self.custom_format_name {
+            builder = builder.custom_format_name(format_name);
+        }
+
+        if let Some(extension) = self.custom_extension {
+            builder = builder.custom_extension(extension);
+        }
+
+        if !self.custom_data.is_empty() {
+            builder = builder.custom_data(self.custom_data);
+        }
+
         builder.build()
     }
 }
@@ -393,6 +506,8 @@ pub enum Format {
     Xml,
     /// JSON format
     Json,
+    /// Custom format (use with `.custom_format()`)
+    Custom,
 }
 
 impl From<Format> for OutputFormat {
@@ -401,6 +516,7 @@ impl From<Format> for OutputFormat {
             Format::Markdown => Self::Markdown,
             Format::Xml => Self::Xml,
             Format::Json => Self::Json,
+            Format::Custom => Self::Custom,
         }
     }
 }
@@ -461,7 +577,7 @@ impl Scan {
     /// # Examples
     ///
     /// ```no_run
-    /// use llm_utl::Scan;
+    /// use llm_utl::api::*;
     ///
     /// Scan::dir("./src")
     ///     .code_review()
@@ -519,9 +635,9 @@ impl Scan {
 /// # Examples
 ///
 /// ```no_run
-/// use llm_utl;
+/// use llm_utl::api::*;
 ///
-/// let stats = llm_utl::scan()?;
+/// let stats = scan()?;
 /// println!("Created {} files", stats.files_written);
 /// # Ok::<(), llm_utl::Error>(())
 /// ```
@@ -534,9 +650,9 @@ pub fn scan() -> Result<PipelineStats> {
 /// # Examples
 ///
 /// ```no_run
-/// use llm_utl;
+/// use llm_utl::api::*;
 ///
-/// let stats = llm_utl::scan_dir("./src")?;
+/// let stats = scan_dir("./src")?;
 /// # Ok::<(), llm_utl::Error>(())
 /// ```
 pub fn scan_dir(path: impl AsRef<Path>) -> Result<PipelineStats> {
@@ -568,6 +684,7 @@ fn default_excludes() -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use super::*;
 
     #[test]

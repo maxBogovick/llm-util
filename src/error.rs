@@ -26,6 +26,15 @@ pub enum Error {
         message: String,
     },
 
+    /// Template validation error.
+    #[error("Template validation failed for '{template}': {reason}")]
+    TemplateValidation {
+        /// Template name or path
+        template: String,
+        /// Validation failure reason
+        reason: String,
+    },
+
     /// Configuration validation error.
     #[error("Invalid configuration: {message}")]
     Config {
@@ -115,6 +124,15 @@ impl Error {
         Self::Template {
             template: template.into(),
             message: source.to_string(),
+        }
+    }
+
+    /// Creates a template validation error.
+    #[must_use]
+    pub fn template_validation(template: impl Into<String>, reason: impl Into<String>) -> Self {
+        Self::TemplateValidation {
+            template: template.into(),
+            reason: reason.into(),
         }
     }
 

@@ -64,6 +64,40 @@ struct Cli {
     /// Verbose output
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
+
+    /// Path to custom Tera template file
+    ///
+    /// When specified, this template will override the built-in template
+    /// for the selected format. For custom formats, use with --format custom.
+    ///
+    /// Example: llm-utl --template ./my-template.tera --format markdown
+    #[arg(long, value_name = "FILE")]
+    template: Option<PathBuf>,
+
+    /// Custom format name (requires --format custom)
+    ///
+    /// Specifies the internal name for a custom template format.
+    ///
+    /// Example: llm-utl --format custom --format-name my_format --template ./my.tera
+    #[arg(long, value_name = "NAME")]
+    format_name: Option<String>,
+
+    /// Custom file extension (requires --format custom)
+    ///
+    /// Specifies the file extension for custom format output files.
+    /// Do not include the leading dot.
+    ///
+    /// Example: llm-utl --format custom --ext txt --template ./my.tera
+    #[arg(long, value_name = "EXT")]
+    ext: Option<String>,
+
+    /// Custom template data in key=value format (can be used multiple times)
+    ///
+    /// This data will be available in templates under the `ctx.custom` namespace.
+    ///
+    /// Example: llm-utl --template-data version=1.0 --template-data author="John Doe"
+    #[arg(long = "template-data", value_name = "KEY=VALUE")]
+    template_data: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -71,6 +105,7 @@ enum CliFormat {
     Markdown,
     Xml,
     Json,
+    Custom,
 }
 
 impl From<CliFormat> for OutputFormat {
@@ -79,6 +114,7 @@ impl From<CliFormat> for OutputFormat {
             CliFormat::Markdown => Self::Markdown,
             CliFormat::Xml => Self::Xml,
             CliFormat::Json => Self::Json,
+            CliFormat::Custom => Self::Custom,
         }
     }
 }
@@ -172,6 +208,38 @@ fn main() -> anyhow::Result<()> {
     // Добавление preset если указан
     if let Some(preset) = cli.preset {
         builder = builder.preset(preset.into());
+    }
+
+    // Добавление template configuration
+    if let Some(template_path) = cli.template {
+        builder = builder.template_path(template_path);
+    }
+
+    if let Some(format_name) = cli.format_name {
+        builder = builder.custom_format_name(format_name);
+    }
+
+    if let Some(ext) = cli.ext {
+        builder = builder.custom_extension(ext);
+    }
+
+    // Парсинг template_data из формата key=value
+    if !cli.template_data.is_empty() {
+        use std::collections::HashMap;
+        use serde_json::Value;
+
+        let mut custom_data = HashMap::new();
+        for item in cli.template_data {
+            if let Some((key, value)) = item.split_once('=') {
+                custom_data.insert(
+                    key.to_string(),
+                    Value::String(value.to_string())
+                );
+            } else {
+                eprintln!("Warning: Invalid template-data format '{}', expected KEY=VALUE", item);
+            }
+        }
+        builder = builder.custom_data(custom_data);
     }
 
     let config = builder.build()

@@ -355,6 +355,170 @@ fn main() {
 }
 ```
 
+## Custom Templates
+
+llm-utl supports custom Tera templates for maximum flexibility in output formatting.
+
+### Using Custom Templates
+
+#### Override Built-in Templates
+
+Replace default templates with your own:
+
+```rust
+use llm_utl::api::*;
+
+Scan::dir("./src")
+    .format(Format::Markdown)
+    .template("./my-markdown.tera")
+    .run()?;
+```
+
+CLI usage:
+```bash
+llm-utl --dir ./src --format markdown --template ./my-markdown.tera
+```
+
+#### Create Custom Formats
+
+Define completely custom output formats:
+
+```rust
+use llm_utl::api::*;
+use serde_json::json;
+
+Scan::dir("./src")
+    .custom_format("my_format", "txt")
+    .template("./custom.tera")
+    .template_data("version", json!("1.0.0"))
+    .template_data("project", json!("My Project"))
+    .template_data("author", json!("John Doe"))
+    .run()?;
+```
+
+CLI usage:
+```bash
+llm-utl --dir ./src \
+  --format custom \
+  --format-name my_format \
+  --ext txt \
+  --template ./custom.tera \
+  --template-data version=1.0.0 \
+  --template-data project="My Project" \
+  --template-data author="John Doe"
+```
+
+### Template Variables
+
+Your templates have access to the following context:
+
+```tera
+{# Chunk information #}
+{{ ctx.chunk_index }}       {# Current chunk number (1-based) #}
+{{ ctx.total_chunks }}      {# Total number of chunks #}
+{{ ctx.chunk_files }}       {# Files in this chunk #}
+{{ ctx.total_tokens }}      {# Token count for chunk #}
+
+{# Files array #}
+{% for file in ctx.files %}
+  {{ file.path }}           {# Absolute path #}
+  {{ file.relative_path }}  {# Relative path #}
+  {{ file.content }}        {# File contents (None for binary) #}
+  {{ file.is_binary }}      {# Boolean flag #}
+  {{ file.token_count }}    {# Estimated tokens #}
+  {{ file.lines }}          {# Line count (None for binary) #}
+{% endfor %}
+
+{# Metadata #}
+{{ ctx.metadata.generated_at }}  {# Timestamp #}
+{{ ctx.metadata.format }}        {# Output format #}
+
+{# Custom data (if provided) #}
+{{ ctx.custom.version }}
+{{ ctx.custom.project }}
+{{ ctx.custom.author }}
+
+{# Preset info (if using a preset) #}
+{{ ctx.preset.name }}
+{{ ctx.preset.description }}
+```
+
+### Custom Filters
+
+Built-in Tera filters available in templates:
+
+```tera
+{# XML escaping #}
+{{ content | xml_escape }}
+
+{# JSON encoding #}
+{{ data | json_encode }}
+{{ data | json_encode(pretty=true) }}
+
+{# Truncate output #}
+{{ content | truncate_lines(max=100) }}
+
+{# Detect language from extension #}
+{{ file.path | detect_language }}
+```
+
+### Example Custom Template
+
+```tera
+# {{ ctx.custom.project }} - Code Review
+Version: {{ ctx.custom.version }}
+Author: {{ ctx.custom.author }}
+
+## Chunk {{ ctx.chunk_index }} of {{ ctx.total_chunks }}
+
+{% for file in ctx.files %}
+### File: {{ file.relative_path }}
+Lines: {{ file.lines }}, Tokens: {{ file.token_count }}
+
+```{% set ext = file.relative_path | split(pat=".") | last %}{{ ext }}
+{{ file.content }}
+```
+
+{% endfor %}
+
+---
+Generated at: {{ ctx.metadata.generated_at }}
+```
+
+### Template Validation
+
+Templates are validated automatically:
+- File existence and readability
+- Tera syntax correctness
+- Required variables (chunk_index, total_chunks, files)
+
+Invalid templates will produce clear error messages with suggested fixes.
+
+### Advanced API Usage
+
+For programmatic template configuration:
+
+```rust
+use llm_utl::{Config, OutputFormat};
+use std::collections::HashMap;
+use serde_json::Value;
+
+let mut custom_data = HashMap::new();
+custom_data.insert("version".to_string(), Value::String("1.0.0".to_string()));
+custom_data.insert("project".to_string(), Value::String("My Project".to_string()));
+
+let config = Config::builder()
+    .root_dir("./src")
+    .template_path("./my-template.tera")
+    .format(OutputFormat::Custom)
+    .custom_format_name("my_format")
+    .custom_extension("txt")
+    .custom_data(custom_data)
+    .build()?;
+
+Pipeline::new(config)?.run()?;
+```
+
 ## Use Cases
 
 - 📖 **Code Review with AI** - Feed your codebase to Claude or GPT-4 for comprehensive reviews

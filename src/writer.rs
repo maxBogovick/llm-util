@@ -64,6 +64,7 @@ pub(crate) struct Writer {
     format: crate::config::OutputFormat,
     backup_existing: bool,
     template_engine: TemplateEngine,
+    custom_extension: Option<String>,
 }
 
 impl Writer {
@@ -79,6 +80,7 @@ impl Writer {
             format: config.format,
             backup_existing: config.backup_existing,
             template_engine: TemplateEngine::new(config)?,
+            custom_extension: config.custom_extension.clone(),
         })
     }
 
@@ -127,12 +129,23 @@ impl Writer {
 
     /// Generates the output file path for a chunk.
     fn get_output_path(&self, index: usize) -> PathBuf {
+        use crate::config::OutputFormat;
+
+        // Determine extension based on format
+        let extension = match self.format {
+            OutputFormat::Custom => self
+                .custom_extension
+                .as_deref()
+                .unwrap_or("txt"),
+            _ => self.format.extension(),
+        };
+
         let filename = self
             .output_pattern
             .replace("{index:03}", &format!("{:03}", index + 1))
             .replace("{index:02}", &format!("{:02}", index + 1))
             .replace("{index}", &(index + 1).to_string())
-            .replace("{ext}", self.format.extension());
+            .replace("{ext}", extension);
 
         self.output_dir.join(filename)
     }

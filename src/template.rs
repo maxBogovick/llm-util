@@ -17,6 +17,7 @@ struct TemplateContext<'a> {
     files: Vec<FileView<'a>>,
     metadata: ContextMetadata,
     preset: Option<PresetContext>,
+    custom: Option<HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Serialize)]
@@ -52,6 +53,8 @@ pub(crate) struct TemplateEngine {
     tera: Tera,
     format: OutputFormat,
     preset: Option<LLMPreset>,
+    custom_data: HashMap<String, serde_json::Value>,
+    custom_template_name: Option<String>,
 }
 
 impl TemplateEngine {
@@ -74,12 +77,19 @@ impl TemplateEngine {
         // Register custom filters
         Self::register_filters(&mut tera);
 
+        // Load external template if provided
+        if let Some(ref template_path) = config.template_path {
+            Self::load_external_template(&mut tera, template_path, config)?;
+        }
+
         let preset = config.preset.map(LLMPreset::for_kind);
 
         Ok(Self {
             tera,
             format: config.format,
             preset,
+            custom_data: config.custom_data.clone(),
+            custom_template_name: config.custom_format_name.clone(),
         })
     }
 
@@ -142,6 +152,65 @@ impl TemplateEngine {
 
         // Language detection filter
         tera.register_filter("detect_language", Self::detect_language_filter);
+    }
+
+    /// Loads and registers an external template file.
+    ///
+    /// # Arguments
+    ///
+    /// * `tera` - Tera instance to register the template in
+    /// * `path` - Path to the template file
+    /// * `config` - Configuration containing template settings
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Template file cannot be read
+    /// - Template syntax is invalid
+    /// - Template validation fails
+    fn load_external_template(
+        tera: &mut Tera,
+        path: &std::path::Path,
+        config: &Config,
+    ) -> Result<()> {
+        use crate::template_validator::TemplateValidator;
+
+        // Validate template (defensive - already done in Config::validate)
+        TemplateValidator::validate_template(path)?;
+
+        // Read template content
+        let content = std::fs::read_to_string(path).map_err(|e| Error::io(path, e))?;
+
+        // Determine template name based on format
+        let template_name = match config.format {
+            OutputFormat::Custom => config
+                .custom_format_name
+                .as_deref()
+                .unwrap_or("custom"),
+            OutputFormat::Markdown => "markdown",
+            OutputFormat::Xml => "xml",
+            OutputFormat::Json => "json",
+        };
+
+        // Register template (overwrites built-in if same name)
+        tera.add_raw_template(template_name, &content)
+            .map_err(|e| Error::template(template_name, e))?;
+
+        tracing::info!(
+            "Loaded external template from {} as '{}'",
+            path.display(),
+            template_name
+        );
+
+        // Warn if using preset with external template
+        if config.preset.is_some() {
+            tracing::warn!(
+                "External template will override preset template. \
+                Ensure your template handles preset context variables."
+            );
+        }
+
+        Ok(())
     }
 
     /// XML escape filter implementation.
@@ -282,9 +351,18 @@ impl TemplateEngine {
                 OutputFormat::Markdown => "preset_markdown",
                 OutputFormat::Xml => "preset_xml",
                 OutputFormat::Json => "preset_json",
+                // Custom formats don't have preset variants, use the custom template name
+                OutputFormat::Custom => self.custom_template_name
+                    .as_deref()
+                    .unwrap_or("custom"),
             }
         } else {
-            self.format.template_name()
+            match self.format {
+                OutputFormat::Custom => self.custom_template_name
+                    .as_deref()
+                    .unwrap_or("custom"),
+                _ => self.format.template_name(),
+            }
         };
 
         let files: Vec<FileView<'_>> = chunk
@@ -316,6 +394,13 @@ impl TemplateEngine {
             temperature_hint: preset.temperature_hint,
         });
 
+        // Prepare custom data (only include if non-empty)
+        let custom_data = if self.custom_data.is_empty() {
+            None
+        } else {
+            Some(self.custom_data.clone())
+        };
+
         let context = TemplateContext {
             chunk_index: chunk.index + 1,
             total_chunks,
@@ -329,6 +414,7 @@ impl TemplateEngine {
                 format: format!("{:?}", self.format),
             },
             preset: preset_context,
+            custom: custom_data,
         };
 
         let mut tera_context = Context::new();
