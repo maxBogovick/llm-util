@@ -33,7 +33,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-llm-utl = "0.1.0"
+llm-utl = "0.1.5"
 ```
 
 ## Quick Start
