@@ -58,6 +58,7 @@ mod token;
 mod writer;
 
 pub mod preset;
+pub mod api;
 
 pub use config::{Config, ConfigBuilder, OutputFormat};
 pub use error::{Error, Result};

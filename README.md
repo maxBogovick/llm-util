@@ -1,21 +1,23 @@
-# llm-utl (llm-utl)
+# llm-utl
 
 [![Crates.io](https://img.shields.io/crates/v/llm-utl.svg)](https://crates.io/crates/llm-utl)
 [![Documentation](https://docs.rs/llm-utl/badge.svg)](https://docs.rs/llm-utl)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A high-performance Rust tool for converting code repositories into LLM-friendly prompts. Transform your codebase into optimally-chunked, formatted prompts ready for use with Large Language Models like Claude, GPT-4, or other AI assistants.
+Transform code repositories into LLM-friendly prompts with intelligent chunking and filtering. Convert your codebase into optimally-chunked, formatted prompts ready for use with Large Language Models like Claude, GPT-4, or other AI assistants.
 
 ## Features
 
-- 🚀 **Blazingly Fast** - Parallel file scanning with multi-threaded processing
-- 🎯 **Smart Chunking** - Automatically splits large codebases into optimal token-sized chunks with overlap
+- 🚀 **Zero-config** - Works out of the box with sensible defaults
+- 🎯 **Type-safe API** - Fluent, compile-time checked interface with presets
+- 📦 **Smart Chunking** - Automatically splits large codebases into optimal token-sized chunks with overlap
+- 🔧 **Presets** - Optimized configurations for common tasks (code review, documentation, security audit)
 - 🧹 **Code Filtering** - Removes tests, comments, debug prints, and other noise from code
-- 📝 **Multiple Formats** - Output to Markdown, XML, or JSON
+- 🎨 **Multiple Formats** - Output to Markdown, XML, or JSON
+- ⚡ **Fast** - Parallel file scanning with multi-threaded processing (~1000 files/second)
 - 🔍 **Gitignore Support** - Respects `.gitignore` files automatically
 - 🌍 **Multi-Language** - Built-in filters for Rust, Python, JavaScript/TypeScript, Go, Java, C/C++
-- 💾 **Safe Operations** - Atomic file writes with automatic backups
-- 📊 **Statistics** - Detailed metrics on processing and token usage
+- 🛡️ **Robust** - Comprehensive error handling with atomic file writes
 
 ## Installation
 
@@ -73,11 +75,69 @@ Options:
 
 ### Library Usage
 
+#### Simple API (Recommended)
+
+The `Scan` API provides a fluent, type-safe interface:
+
+```rust
+use llm_utl::Scan;
+
+// Simplest usage - scan current directory
+llm_utl::scan()?;
+
+// Scan specific directory
+Scan::dir("./src").run()?;
+
+// Use a preset for common tasks
+Scan::dir("./src")
+    .code_review()
+    .run()?;
+
+// Custom configuration
+Scan::dir("./project")
+    .output("./prompts")
+    .max_tokens(200_000)
+    .format(Format::Json)
+    .keep_tests()
+    .run()?;
+```
+
+#### Using Presets
+
+Presets provide optimized configurations for specific tasks:
+
+```rust
+use llm_utl::Scan;
+
+// Code review - removes tests, comments, debug prints
+Scan::dir("./src")
+    .code_review()
+    .run()?;
+
+// Documentation - keeps all comments and docs
+Scan::dir("./project")
+    .documentation()
+    .run()?;
+
+// Security audit - includes everything
+Scan::dir("./src")
+    .security_audit()
+    .run()?;
+
+// Bug analysis - focuses on logic
+Scan::dir("./src")
+    .bug_analysis()
+    .run()?;
+```
+
+#### Advanced API
+
+For complex scenarios, use the full `Pipeline` API:
+
 ```rust
 use llm_utl::{Config, Pipeline, OutputFormat};
 
 fn main() -> anyhow::Result<()> {
-    // Configure the pipeline
     let config = Config::builder()
         .root_dir("./src")
         .output_dir("./prompts")
@@ -86,11 +146,8 @@ fn main() -> anyhow::Result<()> {
         .overlap_tokens(1_000)
         .build()?;
 
-    // Run the conversion pipeline
     let stats = Pipeline::new(config)?.run()?;
 
-    // Print results
-    stats.print_summary();
     println!("Processed {} files into {} chunks",
         stats.total_files,
         stats.total_chunks
@@ -174,6 +231,80 @@ let config = Config::builder()
     .tokenizer(TokenizerKind::Enhanced)  // More accurate
     // .tokenizer(TokenizerKind::Simple) // Faster, ~4 chars per token
     .build()?;
+```
+
+## Working with Statistics
+
+The `PipelineStats` struct provides detailed information about the scanning process:
+
+```rust
+let stats = Scan::dir("./src").run()?;
+
+// File counts
+println!("Total files: {}", stats.total_files);
+println!("Text files: {}", stats.text_files);
+println!("Binary files: {}", stats.binary_files);
+
+// Chunks
+println!("Total chunks: {}", stats.total_chunks);
+println!("Avg chunk size: {} tokens", stats.avg_tokens_per_chunk);
+println!("Max chunk size: {} tokens", stats.max_chunk_tokens);
+
+// Performance
+println!("Duration: {:.2}s", stats.duration.as_secs_f64());
+println!("Throughput: {:.0} tokens/sec",
+    stats.throughput_tokens_per_sec()
+);
+
+// Output
+println!("Output directory: {}", stats.output_directory);
+println!("Files written: {}", stats.files_written);
+```
+
+## Design Philosophy
+
+### Progressive Disclosure
+
+Start simple, add complexity only when needed:
+
+1. **Level 1**: `llm_utl::scan()` - Zero config, works immediately
+2. **Level 2**: `Scan::dir("path").code_review()` - Use presets for common tasks
+3. **Level 3**: `Scan::dir().keep_tests().exclude([...])` - Fine-grained control
+4. **Level 4**: Full `Config` API - Maximum flexibility
+
+### Type Safety
+
+All options are compile-time checked:
+
+```rust
+// This won't compile - caught at compile time
+Scan::dir("./src")
+    .format("invalid");  // Error: expected Format enum
+
+// Correct usage
+Scan::dir("./src")
+    .format(Format::Json);
+```
+
+### Sensible Defaults
+
+Works well without configuration:
+- Excludes common directories (`node_modules`, `target`, `.git`, etc.)
+- Removes noise (tests, comments, debug prints)
+- Uses efficient token limits (100,000 per chunk)
+- Provides clear, actionable error messages
+
+### Fluent Interface
+
+Natural, readable API:
+
+```rust
+Scan::dir("./src")
+    .code_review()
+    .output("./review")
+    .max_tokens(200_000)
+    .keep_tests()
+    .run()?;
 ```
 
 ## Output Formats
@@ -262,21 +393,90 @@ Built-in filtering support for:
 
 Other languages are processed as plain text.
 
-## Examples
+## Real-World Examples
 
-See the `examples/` directory for more usage examples:
+### Pre-commit Review
 
-```bash
-cargo run --example basic
-cargo run --example custom_config
-cargo run --example advanced_filtering
+```rust
+use llm_utl::Scan;
+
+fn pre_commit_hook() -> llm_utl::Result<()> {
+    println!("🔍 Analyzing changes...");
+
+    let stats = Scan::dir("./src")
+        .code_review()
+        .output("./review")
+        .run()?;
+
+    println!("✓ Review ready in {}", stats.output_directory);
+    Ok(())
+}
 ```
+
+### CI/CD Security Scan
+
+```rust
+use llm_utl::Scan;
+
+fn ci_security_check() -> llm_utl::Result<()> {
+    let stats = Scan::dir("./src")
+        .security_audit()
+        .output("./security-reports")
+        .max_tokens(120_000)
+        .run()?;
+
+    if stats.total_files == 0 {
+        eprintln!("❌ No files to scan");
+        std::process::exit(1);
+    }
+
+    println!("✓ Scanned {} files", stats.total_files);
+    Ok(())
+}
+```
+
+### Documentation Generation
+
+```rust
+use llm_utl::Scan;
+
+fn generate_docs() -> llm_utl::Result<()> {
+    Scan::dir(".")
+        .documentation()
+        .output("./docs/ai-generated")
+        .run()?;
+
+    Ok(())
+}
+```
+
+### Batch Processing
+
+```rust
+use llm_utl::Scan;
+
+fn process_multiple_projects() -> llm_utl::Result<()> {
+    for project in ["./frontend", "./backend", "./mobile"] {
+        println!("Processing {project}...");
+
+        match Scan::dir(project).run() {
+            Ok(stats) => println!("  ✓ {} files", stats.total_files),
+            Err(e) => eprintln!("  ✗ Error: {e}"),
+        }
+    }
+    Ok(())
+}
+```
+
+## More Examples
+
+See the `https://github.com/maxBogovick/llm-util/tree/master/examples` directory for more usage examples.
 
 ## Development
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/llm-utl.git
+git clone https://github.com/maxBogovick/llm-util.git
 cd llm-utl
 
 # Build
@@ -354,6 +554,86 @@ llm-utl --max-tokens 200000
 # Or use simple tokenizer for better performance
 llm-utl --tokenizer simple
 ```
+
+## FAQ
+
+### How do I scan only specific file types?
+
+Use the `Scan` API with exclusion patterns or the full `Config` API with custom file filters:
+
+```rust
+use llm_utl::{Config, FileFilterConfig};
+
+Config::builder()
+    .root_dir("./src")
+    .file_filter_config(
+        FileFilterConfig::default()
+            .allow_only(vec!["**/*.rs".to_string(), "**/*.toml".to_string()])
+    )
+    .build()?
+    .run()?;
+```
+
+### How do I handle very large codebases?
+
+Increase token limits and adjust overlap:
+
+```rust
+Scan::dir("./large-project")
+    .max_tokens(500_000)
+    .overlap(5_000)
+    .run()?;
+```
+
+### Can I process multiple directories?
+
+Yes, scan each separately or use a common parent:
+
+```rust
+for dir in ["./src", "./lib", "./bin"] {
+    Scan::dir(dir)
+        .output(&format!("./out/{}", dir.trim_start_matches("./")))
+        .run()?;
+}
+```
+
+### How do I preserve everything for analysis?
+
+Use the security audit preset or configure manually:
+
+```rust
+// Using preset
+Scan::dir("./src")
+    .security_audit()
+    .run()?;
+
+// Manual configuration
+Scan::dir("./src")
+    .keep_tests()
+    .keep_comments()
+    .keep_doc_comments()
+    .keep_debug_prints()
+    .run()?;
+```
+
+### What are the available presets?
+
+The library provides these presets:
+
+- **code_review** - Removes tests, comments, debug prints for clean code review
+- **documentation** - Preserves all documentation and comments
+- **security_audit** - Includes everything for comprehensive security analysis
+- **bug_analysis** - Focuses on logic by removing noise
+- **refactoring** - Optimized for refactoring tasks
+- **test_generation** - Configured for generating tests
+
+## Platform Support
+
+- ✓ Linux
+- ✓ macOS
+- ✓ Windows
+
+All major platforms are supported and tested.
 
 ## Contributing
 

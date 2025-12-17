@@ -226,8 +226,12 @@ impl Scanner {
             return Self::create_binary_file_data(path, relative_path, stats);
         }
 
-        // Check if file is binary by content
-        if is_likely_binary(path)? {
+        // If file has a known text extension, skip binary content check
+        // to avoid false positives on text files with special characters
+        let has_text_ext = crate::file::has_text_extension(path);
+
+        // Check if file is binary by content (only for files without known text extensions)
+        if !has_text_ext && is_likely_binary(path)? {
             stats.binary_files += 1;
 
             if !include_binary {

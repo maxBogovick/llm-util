@@ -1,6 +1,6 @@
 [package]
 name = "llm-utl"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 authors = ["Maxim Bogovic <bogovick@gmail.com>"]
 description = "Convert code repositories into LLM-friendly prompts with smart chunking and filtering"

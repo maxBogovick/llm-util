@@ -151,7 +151,7 @@ pub(crate) fn is_likely_binary(path: &Path) -> Result<bool> {
 }
 
 /// Checks if a file extension suggests a text file.
-#[allow(dead_code)]
+#[must_use]
 pub(crate) fn has_text_extension(path: &Path) -> bool {
     static TEXT_EXTENSIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         [
